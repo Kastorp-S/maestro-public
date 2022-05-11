@@ -92,9 +92,10 @@ class Adv_Training():
                 outputs = self.model(inputs)
                 loss = criterion(outputs, labels)
 
-                adv_outputs = self.model(adv_inputs)
-                adv_loss = criterion(adv_outputs, labels)
-                loss += adv_loss
+                perturbed = self.perturb.attack(self.model, inputs)
+                pert_output = self.model(perturbed)
+                pert_loss = criterion(pert_output, labels)
+                loss += pert_loss
 
                 loss.backward()
                 optimizer.step()
