@@ -98,7 +98,7 @@ class Adv_Training():
                 pert_loss = criterion(pert_outputs, labels)
                 loss += pert_loss
                 
-                loss = loss * 0.5
+                loss = loss * 1.5
 
                 """
                 perturbed = self.perturb.attack(self.model, inputs)
