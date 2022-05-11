@@ -85,11 +85,17 @@ class Adv_Training():
                 # zero the parameter gradients
             # --------------TODO--------------\
                 adv_inputs, _ = self.perturb.attack(inputs, labels.detach().cpu().tolist())
-                adv_inputs = torch.tensor(adv_inputs).to(device)                
+                adv_inputs = torch.tensor(adv_inputs).to(device)   
+             
                 # zero the parameter gradients
                 optimizer.zero_grad()
                 outputs = self.model(inputs)
                 loss = criterion(outputs, labels)
+
+                adv_outputs = self.model(adv_inputs)
+                adv_loss = criterion(adv_outputs, labels)
+                loss += adv_loss
+
                 loss.backward()
                 optimizer.step()
                 running_loss += loss.item()
