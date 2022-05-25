@@ -13,6 +13,8 @@ import torch.optim as optim
 from utils import get_dataset
 import importlib.util
 
+from tasks.defense_project.submission.predict import LeNet
+
 random.seed(0)
 np.random.seed(0)
 torch.manual_seed(0)
@@ -155,13 +157,13 @@ class Adv_Training():
         self.model.zero_grad()
         return perturbed_image
 
-    def train(self, model, trainset, valset, device, epoches=20):
-        model.to(device)
-        model.train()
+    def train(self, trainset, valset, device, epoches=40):
+        self.model.to(device)
+        self.model.train()
         trainloader = torch.utils.data.DataLoader(trainset, batch_size=100, shuffle=True, num_workers=10)
         dataset_size = len(trainset)
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters())
+        optimizer = optim.Adam(self.model.parameters())
         for epoch in range(epoches):  # loop over the dataset multiple times
             running_loss = 0.0
             for i, (inputs, labels) in enumerate(trainloader, 0):
@@ -169,19 +171,17 @@ class Adv_Training():
                 inputs = inputs.to(device)
                 labels = labels.to(device)
                 # zero the parameter gradients
+                adv_inputs, _ = self.perturb.attack(inputs, labels.detach().cpu().tolist())
+                adv_inputs = torch.tensor(adv_inputs).to(device)
+                # zero the parameter gradients
                 optimizer.zero_grad()
-                outputs = model(inputs)
+                outputs = self.model(inputs)
                 loss = criterion(outputs, labels)
-                pertubed = self.perturb(inputs, labels)
-                pert_output = model(pertubed)
-                pert_loss = criterion(pert_output, labels)
-                loss += pert_loss
                 loss.backward()
                 optimizer.step()
                 running_loss += loss.item()
-            print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / (dataset_size)))
+            print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / dataset_size))
             running_loss = 0.0
-
         valloader = torch.utils.data.DataLoader(valset, batch_size=100, shuffle=True, num_workers=10)
         correct = 0
         total = 0
@@ -190,13 +190,12 @@ class Adv_Training():
                 # print(inputs.shape, labels.shape)
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-                outputs = model(inputs)
+                outputs = self.model(inputs)
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
         print("Accuracy of the network on the val images: %.3f %%" % (100 * correct / total))
-
-        return model
+        return
     ###
 
 def main():
