@@ -1,0 +1,6 @@
+{
+    "raw_acc": 73.95833333333333,
+    "score": 36.33889758302903,
+    "target_FGSM_targeted_sr": 94.36619718309859,
+    "target_PGD_targeted_sr": 100.0
+}
