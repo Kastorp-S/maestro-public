@@ -11,6 +11,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 import torch.optim as optim
 
+"""
 class LeNet(nn.Module):
     def __init__(self):
         super(LeNet, self).__init__()
@@ -36,19 +37,18 @@ class LeNet(nn.Module):
         x = F.relu(self.fc3(x))
         x = self.fc4(x)
         return x
+"""
 
-###
-class LeN(nn.Module):
-    """
-    """
+class LeNet(nn.Module):
     def __init__(self):
-        super(LeN, self).__init__()
+        super(LeNet, self).__init__()
         self.conv1 = nn.Conv2d(3, 6, 5)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
         self.fc1 = nn.Linear(16 * 5 * 5, 120)
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 2)
+        self.fc3 = nn.Linear(84, 10)
+        self.fc4 = nn.Linear(10, 4)
 
     def forward(self, x) -> torch.tensor:
         x = self.pool(F.relu(self.conv1(x)))
@@ -57,8 +57,8 @@ class LeN(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
+        x = self.fc4(x)
         return x
-###
 
 class Prediction():
     """
@@ -109,8 +109,6 @@ class Prediction():
     def __init__(self, device, file_path):
         self.device = device
         self.model = self.constructor(file_path).to(device)
-        self.detector = LeN().to(device)
-        self.detector.load_state_dict(torch.load("/Volumes/test/maestro-class/playground/defense_project/models/defense_project-model-detector.pth"))
 
     def constructor(self, file_path=None):
         model = LeNet()
@@ -123,11 +121,23 @@ class Prediction():
         return perturbed_image
 
     def detect_attack(self, original_image):
-        output = self.detector(original_image.reshape([1,3,32,32]))
-        _, predicted = torch.max(output.data, 1)
-        return predicted == 1
+        ## Function to detect whether it is an attack
+        Uthreshold = 1.85
+        Lthreshold = 0.52
+        image = self.preprocess(original_image)
+        yhat = self.model(image)
+        # print(yhat.data)
+        _,predicted = torch.max(yhat.data, 1)
+        # print(predicted)
+        # print("Bound: ", yhat.data[0][predicted])
 
-    def batch_predict(self, images):
+        ## Multiple boundaries - min arg
+
+        if Lthreshold < (yhat.data[0][predicted]) < Uthreshold:
+            return True
+        return False
+
+    def get_batch_output(self, images):
         predictions = []
         for image in images:
             if self.detect_attack(image):
