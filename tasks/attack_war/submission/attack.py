@@ -39,6 +39,53 @@ class Attack:
         # -------------------- TODO ------------------ #
 
         # Write your attack function here
+        """
+        perturbed_image = torch.from_numpy(perturbed_image)
+
+        adv_images = perturbed_image.clone().detach()
+
+        batch_size = len(original_images)
+    
+        # Starting at a uniformly random point
+
+        adv_images = adv_images + torch.empty_like(adv_images).uniform_(-self.l2_threshold, self.l2_threshold)
+        adv_images = torch.clamp(adv_images, min=0, max=1).detach()
+
+        for i in range(40):
+
+            data_grad = self.vm.get_batch_input_gradient(original_images, labels)
+            data_grad = torch.FloatTensor(data_grad)
+
+            grad_norms = torch.norm(data_grad.view(batch_size, -1), p=2, dim=1) + (1e-10)
+            data_grad = data_grad / grad_norms.view(batch_size,1,1,1)
+            adv_images = adv_images.detach() + 0.2 * data_grad
+
+            eta = adv_images - perturbed_image
+            eta_norms = torch.norm(eta.view(batch_size, -1), p=2, dim=1)
+            factor = self.epsilon / eta_norms
+            factor = torch.min(factor, torch.ones_like(eta_norms))
+            eta = eta * factor.view(-1,1,1,1)
+            adv_images = torch.clamp(perturbed_image + eta, min=0, max=1).detach()
+            """
+
+        """
+        e = 5
+        epsilon = min(e+4, int(1.25*e))
+        alpha = 0.01
+
+        desired_labels = torch.tensor([torch.tensor(1)]).to(self.device)
+
+        for i in range(epsilon):
+            gradient = self.vm.get_batch_input_gradient(perturbed_image, desired_labels)
+            perturbed_image = perturbed_image - (alpha*gradient.sign())
+            perturbed_image = torch.clamp(perturbed_image, self.min_val, self.max_val)
+            perturbed_image = perturbed_image.detach().clone()
+        """
+
+        data_grad = self.compute_gradient(original_images, labels)
+        sign_data_grad = data_grad.sign()
+        perturbed_image = original_images + self.epsilon*sign_data_grad
+        perturbed_image = torch.clamp(perturbed_image, self.min_val, self.max_val)
 
         # ------------------ END TODO ---------------- #
 
